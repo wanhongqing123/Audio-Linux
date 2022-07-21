@@ -13,7 +13,8 @@
 #include <alsa/asoundlib.h>
 #include <mutex>
 #include "alsasymboltable_linux.h"
-
+typedef AlsaSymbolTable LiteavAlsaSymbolTables;
+extern LiteavAlsaSymbolTables* GetAlsaSymbolTable();
 
 class AudioMixerManagerLinuxALSA {
  public:

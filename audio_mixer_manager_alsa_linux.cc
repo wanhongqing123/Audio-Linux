@@ -15,7 +15,7 @@
 // will work on systems that don't have it.
 
 
-typedef AlsaSymbolTable LiteavAlsaSymbolTables;
+
 #define AdmMaxDeviceNameSize 128
 LiteavAlsaSymbolTables* GetAlsaSymbolTable() {
     static LiteavAlsaSymbolTables* p = new LiteavAlsaSymbolTables();
