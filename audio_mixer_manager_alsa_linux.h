@@ -13,9 +13,7 @@
 #include <alsa/asoundlib.h>
 #include <mutex>
 #include "alsasymboltable_linux.h"
-typedef AlsaSymbolTable LiteavAlsaSymbolTables;
-extern LiteavAlsaSymbolTables* GetAlsaSymbolTable();
-
+#include "audio_device_Linux_alsa.h"
 class AudioMixerManagerLinuxALSA {
  public:
   int32_t OpenSpeaker(char* deviceName);

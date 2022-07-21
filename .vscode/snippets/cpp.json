@@ -1,0 +1,32 @@
+{
+  // This file contains snippets that might be useful to you for TRTC
+  // development.
+  "Tencent Header": {
+    "prefix": "hdr",
+    "body": [
+      "// Copyright (c) ${CURRENT_YEAR} Tencent. All rights reserved.",
+      "${0:",
+      "#ifndef ${TM_FILEPATH/(^\\/.*\\/src\\/)|(^~\\/.*\\/src\\/)|([^a-zA-Z0-9])|([a-zA-Z0-9])/${3:+_}${4:/upcase}/g}_",
+      "#define ${TM_FILEPATH/(^\\/.*\\/src\\/)|(^~\\/.*\\/src\\/)|([^a-zA-Z0-9])|([a-zA-Z0-9])/${3:+_}${4:/upcase}/g}_",
+      "",
+      "#endif  // ${TM_FILEPATH/(^\\/.*\\/src\\/)|(^~\\/.*\\/src\\/)|([^a-zA-Z0-9])|([a-zA-Z0-9])/${3:+_}${4:/upcase}/g}_}"
+    ]
+  },
+  "Tencent Copyright": {
+    "prefix": "copyright",
+    "body": ["// Copyright (c) ${CURRENT_YEAR} Tencent. All rights reserved."]
+  },
+  "Chrome Log": {
+    "prefix": "log",
+    "body": "LOG(ERROR) << \"${1:message}\";",
+    "description": "Chrome Log output to console"
+  },
+  "Stack trace": {
+    "prefix": "st",
+    "body": "base::debug::StackTrace().Print();"
+  },
+  "Stack trace header": {
+    "prefix": "sth",
+    "body": "#include \"base/debug/stack_trace.h\""
+  }
+}

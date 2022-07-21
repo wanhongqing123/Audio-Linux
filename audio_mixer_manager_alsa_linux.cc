@@ -14,14 +14,7 @@
 // directly. This way we don't have to link to libasound, which means our binary
 // will work on systems that don't have it.
 
-
-
 #define AdmMaxDeviceNameSize 128
-LiteavAlsaSymbolTables* GetAlsaSymbolTable() {
-    static LiteavAlsaSymbolTables* p = new LiteavAlsaSymbolTables();
-    return p;
-}
-
 
 #define LATE(sym)                                                            \
   LATESYM_GET(AlsaSymbolTable, GetAlsaSymbolTable(), \

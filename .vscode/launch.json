@@ -1,0 +1,62 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug TRTCPipelineMac",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceRoot}/out/Debug/TRTCPipelineMac.app/Contents/MacOS/TRTCPipelineMac",
+      "MIMode": "lldb",
+      "cwd": ".",
+      "preLaunchTask": "6-build_TRTCPipelineMac.app",
+    },
+    {
+      "name": "Debug LEB test",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceRoot}/out/Debug/leb_test",
+      "MIMode": "lldb",
+      "cwd": ".",
+      "preLaunchTask": "7-build_leb_test_demo",
+    },
+    {
+      "name": "Debug Liteav_base_unittest",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceRoot}/out/Debug/liteav_base_unittests",
+      "MIMode": "lldb",
+      "cwd": ".",
+      "preLaunchTask": "9-build_liteav_base_unittest",
+    },
+    {
+      "name": "Debug Win Liteav_base_unittest",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceRoot}/out/Debug/liteav_base_unittests",
+      "cwd": ".",
+      "preLaunchTask": "9-build_liteav_base_unittest",
+    },
+    {
+      "name": "Debug ios TRTCPipelineiOS",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceRoot}/out/Debug/TRTCPipelineiOS.app",
+      "MIMode": "lldb",
+      "platform":"ios",
+      "preLaunchTask": "10-build_TRTCPipelineiOS",
+      "iosTarget":"select",
+    },
+    // for node js (md_generate_headers debug)
+    {
+      "name":"Debug md Generate Headers",
+      "type":"node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/sdk/tools/headerfiles_create_tools",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run-script", "start"]
+    },
+  ]
+}

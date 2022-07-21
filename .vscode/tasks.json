@@ -1,0 +1,404 @@
+{
+  "version": "2.0.0",
+  "runner": "terminal",
+  "tasks": [
+    {
+      "label": "1-build_trtc_test",
+      "type": "shell",
+      "command": "ninja -C out/Debug trtc_test",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "problemMatcher": [
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Debug"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Debug"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        }
+      ]
+    },
+    {
+      "label": "2-build_trtc_unittests",
+      "type": "shell",
+      "command": "ninja -C out/Debug trtc_unittests",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "problemMatcher": [
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Release"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Release"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        }
+      ]
+    },
+    {
+      "label": "3-build_base_unittests",
+      "type": "shell",
+      "command": "ninja -C out/Debug base_unittests",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "problemMatcher": [
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Debug"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Debug"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        }
+      ]
+    },
+    {
+      "label": "4-build_net_unittests",
+      "type": "shell",
+      "command": "ninja -C out/Debug net_unittests",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "problemMatcher": [
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Release"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Release"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        }
+      ]
+    },
+    {
+      "label": "5-build_all",
+      "type": "shell",
+      "command": "ninja -C out/Debug gn_all",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "problemMatcher": [
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Debug"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*):(\\d+):(\\d+):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}/out/Debug"
+          ],
+          "pattern": {
+            "regexp": "^(gen/.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        },
+        {
+          "owner": "cpp",
+          "fileLocation": [
+            "relative",
+            "${workspaceRoot}"
+          ],
+          "pattern": {
+            "regexp": "^../../(.*?):(.*):\\s+(warning|\\w*\\s?error):\\s+(.*)$",
+            "file": 1,
+            "severity": 3,
+            "message": 4
+          }
+        }
+      ]
+    },
+    {
+      "label": "6-build_TRTCPipelineMac.app",
+      "type": "shell",
+      "command": "ninja -C out/Debug TRTCPipelineMac",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true,
+      },
+    },
+    {
+      "label": "7-build_leb_test_demo",
+      "type": "shell",
+      "command": "ninja -C out/Debug leb_test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true,
+      },
+    },
+    {
+      "label": "8-gen_compile_commands_json",
+      "type": "shell",
+      "command": "./tools/clang/scripts/generate_compdb.py -p out/Debug  -o compile_commands.json",
+      "problemMatcher": []
+    },
+    {
+      "label": "9-build_liteav_base_unittest",
+      "type": "shell",
+      "command": "ninja -C out/Debug liteav_base_unittests",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true,
+      },
+    },
+    {
+      "label": "10-build_TRTCPipelineiOS",
+      "type": "shell",
+      "command": "ninja -C ${workspaceRoot}/out/Debug TRTCPipelineiOS ",
+      "presentation": {
+        "echo": true,
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true,
+      },
+    },
+  ]
+}
