@@ -25,10 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "modules/audio_device/linux/alsasymboltable_linux.h"
-
-namespace webrtc {
-namespace adm_linux_alsa {
+#include "alsasymboltable_linux.h"
 
 LATE_BINDING_SYMBOL_TABLE_DEFINE_BEGIN(AlsaSymbolTable, "libasound.so.2")
 #define X(sym) LATE_BINDING_SYMBOL_TABLE_DEFINE_ENTRY(AlsaSymbolTable, sym)
@@ -36,5 +33,3 @@ ALSA_SYMBOLS_LIST
 #undef X
 LATE_BINDING_SYMBOL_TABLE_DEFINE_END(AlsaSymbolTable)
 
-}  // namespace adm_linux_alsa
-}  // namespace webrtc

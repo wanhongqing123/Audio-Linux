@@ -13,10 +13,7 @@
 
 #include <memory>
 
-#include "modules/audio_device/audio_device_generic.h"
-#include "modules/audio_device/linux/audio_mixer_manager_alsa_linux.h"
-#include "rtc_base/platform_thread.h"
-#include "rtc_base/synchronization/mutex.h"
+#include "audio_mixer_manager_alsa_linux.h"
 
 #if defined(WEBRTC_USE_X11)
 #include <X11/Xlib.h>
@@ -30,7 +27,7 @@ WebRTCAlsaSymbolTable* GetAlsaSymbolTable();
 
 namespace webrtc {
 
-class AudioDeviceLinuxALSA : public AudioDeviceGeneric {
+class AudioDeviceLinuxALSA  {
  public:
   AudioDeviceLinuxALSA();
   virtual ~AudioDeviceLinuxALSA();

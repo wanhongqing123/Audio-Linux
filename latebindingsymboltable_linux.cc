@@ -8,44 +8,29 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "modules/audio_device/linux/latebindingsymboltable_linux.h"
+#include "latebindingsymboltable_linux.h"
 
-#include "rtc_base/logging.h"
-
-#ifdef WEBRTC_LINUX
 #include <dlfcn.h>
-#endif
-
-namespace webrtc {
-namespace adm_linux {
+#include <string>
 
 inline static const char* GetDllError() {
-#ifdef WEBRTC_LINUX
   char* err = dlerror();
   if (err) {
     return err;
   } else {
     return "No error";
   }
-#else
-#error Not implemented
-#endif
 }
 
 DllHandle InternalLoadDll(const char dll_name[]) {
-#ifdef WEBRTC_LINUX
   DllHandle handle = dlopen(dll_name, RTLD_NOW);
-#else
-#error Not implemented
-#endif
   if (handle == kInvalidDllHandle) {
-    RTC_LOG(LS_WARNING) << "Can't load " << dll_name << " : " << GetDllError();
+     std::string error = GetDllError();
   }
   return handle;
 }
 
 void InternalUnloadDll(DllHandle handle) {
-#ifdef WEBRTC_LINUX
 // TODO(pbos): Remove this dlclose() exclusion when leaks and suppressions from
 // here are gone (or AddressSanitizer can display them properly).
 //
@@ -55,31 +40,22 @@ void InternalUnloadDll(DllHandle handle) {
 // https://code.google.com/p/address-sanitizer/issues/detail?id=89
 #if !defined(ADDRESS_SANITIZER)
   if (dlclose(handle) != 0) {
-    RTC_LOG(LS_ERROR) << GetDllError();
+   std::string error = GetDllError();
   }
 #endif  // !defined(ADDRESS_SANITIZER)
-#else
-#error Not implemented
-#endif
 }
 
 static bool LoadSymbol(DllHandle handle,
                        const char* symbol_name,
                        void** symbol) {
-#ifdef WEBRTC_LINUX
   *symbol = dlsym(handle, symbol_name);
   char* err = dlerror();
   if (err) {
-    RTC_LOG(LS_ERROR) << "Error loading symbol " << symbol_name << " : " << err;
     return false;
   } else if (!*symbol) {
-    RTC_LOG(LS_ERROR) << "Symbol " << symbol_name << " is NULL";
     return false;
   }
   return true;
-#else
-#error Not implemented
-#endif
 }
 
 // This routine MUST assign SOME value for every symbol, even if that value is
@@ -89,10 +65,7 @@ bool InternalLoadSymbols(DllHandle handle,
                          int num_symbols,
                          const char* const symbol_names[],
                          void* symbols[]) {
-#ifdef WEBRTC_LINUX
-  // Clear any old errors.
   dlerror();
-#endif
   for (int i = 0; i < num_symbols; ++i) {
     if (!LoadSymbol(handle, symbol_names[i], &symbols[i])) {
       return false;
@@ -101,5 +74,3 @@ bool InternalLoadSymbols(DllHandle handle,
   return true;
 }
 
-}  // namespace adm_linux
-}  // namespace webrtc

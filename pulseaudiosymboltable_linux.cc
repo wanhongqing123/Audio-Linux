@@ -25,10 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "modules/audio_device/linux/pulseaudiosymboltable_linux.h"
-
-namespace webrtc {
-namespace adm_linux_pulse {
+#include "pulseaudiosymboltable_linux.h"
 
 LATE_BINDING_SYMBOL_TABLE_DEFINE_BEGIN(PulseAudioSymbolTable, "libpulse.so.0")
 #define X(sym) \
@@ -37,5 +34,3 @@ PULSE_AUDIO_SYMBOLS_LIST
 #undef X
 LATE_BINDING_SYMBOL_TABLE_DEFINE_END(PulseAudioSymbolTable)
 
-}  // namespace adm_linux_pulse
-}  // namespace webrtc

@@ -8,33 +8,36 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "modules/audio_device/linux/audio_mixer_manager_alsa_linux.h"
-
-#include "modules/audio_device/linux/audio_device_alsa_linux.h"
-#include "rtc_base/logging.h"
+#include "audio_mixer_manager_alsa_linux.h"
 
 // Accesses ALSA functions through our late-binding symbol table instead of
 // directly. This way we don't have to link to libasound, which means our binary
 // will work on systems that don't have it.
+
+
+typedef AlsaSymbolTable LiteavAlsaSymbolTables;
+#define AdmMaxDeviceNameSize 128
+LiteavAlsaSymbolTables* GetAlsaSymbolTable() {
+    static LiteavAlsaSymbolTables* p = new LiteavAlsaSymbolTables();
+    return p;
+}
+
+
 #define LATE(sym)                                                            \
-  LATESYM_GET(webrtc::adm_linux_alsa::AlsaSymbolTable, GetAlsaSymbolTable(), \
+  LATESYM_GET(AlsaSymbolTable, GetAlsaSymbolTable(), \
               sym)
 
-namespace webrtc {
-
 AudioMixerManagerLinuxALSA::AudioMixerManagerLinuxALSA()
-    : _outputMixerHandle(NULL),
-      _inputMixerHandle(NULL),
-      _outputMixerElement(NULL),
-      _inputMixerElement(NULL) {
-  RTC_DLOG(LS_INFO) << __FUNCTION__ << " created";
+    : outputMixerHandle_(nullptr),
+      inputMixerHandle_(nullptr),
+      outputMixerElement_(nullptr),
+      inputMixerElement_(nullptr) {
 
-  memset(_outputMixerStr, 0, kAdmMaxDeviceNameSize);
-  memset(_inputMixerStr, 0, kAdmMaxDeviceNameSize);
+  memset(outputMixerStr_, 0, AdmMaxDeviceNameSize);
+  memset(inputMixerStr_, 0, AdmMaxDeviceNameSize);
 }
 
 AudioMixerManagerLinuxALSA::~AudioMixerManagerLinuxALSA() {
-  RTC_DLOG(LS_INFO) << __FUNCTION__ << " destroyed";
   Close();
 }
 
@@ -43,9 +46,8 @@ AudioMixerManagerLinuxALSA::~AudioMixerManagerLinuxALSA() {
 // ============================================================================
 
 int32_t AudioMixerManagerLinuxALSA::Close() {
-  RTC_DLOG(LS_VERBOSE) << __FUNCTION__;
 
-  MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
 
   CloseSpeakerLocked();
   CloseMicrophoneLocked();
@@ -54,142 +56,107 @@ int32_t AudioMixerManagerLinuxALSA::Close() {
 }
 
 int32_t AudioMixerManagerLinuxALSA::CloseSpeaker() {
-  MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   return CloseSpeakerLocked();
 }
 
 int32_t AudioMixerManagerLinuxALSA::CloseSpeakerLocked() {
-  RTC_DLOG(LS_VERBOSE) << __FUNCTION__;
 
   int errVal = 0;
 
-  if (_outputMixerHandle != NULL) {
-    RTC_LOG(LS_VERBOSE) << "Closing playout mixer";
-    LATE(snd_mixer_free)(_outputMixerHandle);
+  if (outputMixerHandle_ != nullptr) {
+    LATE(snd_mixer_free)(outputMixerHandle_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error freeing playout mixer: "
-                        << LATE(snd_strerror)(errVal);
+      LATE(snd_strerror)(errVal);
     }
-    errVal = LATE(snd_mixer_detach)(_outputMixerHandle, _outputMixerStr);
+    errVal = LATE(snd_mixer_detach)(outputMixerHandle_, outputMixerStr_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error detaching playout mixer: "
-                        << LATE(snd_strerror)(errVal);
+      LATE(snd_strerror)(errVal);
     }
-    errVal = LATE(snd_mixer_close)(_outputMixerHandle);
+    errVal = LATE(snd_mixer_close)(outputMixerHandle_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error snd_mixer_close(handleMixer) errVal="
-                        << errVal;
+
     }
-    _outputMixerHandle = NULL;
-    _outputMixerElement = NULL;
+    outputMixerHandle_ = nullptr;
+    outputMixerElement_= nullptr;
   }
-  memset(_outputMixerStr, 0, kAdmMaxDeviceNameSize);
+  memset(outputMixerStr_, 0, AdmMaxDeviceNameSize);
 
   return 0;
 }
 
 int32_t AudioMixerManagerLinuxALSA::CloseMicrophone() {
-  MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
   return CloseMicrophoneLocked();
 }
 
 int32_t AudioMixerManagerLinuxALSA::CloseMicrophoneLocked() {
-  RTC_DLOG(LS_VERBOSE) << __FUNCTION__;
-
   int errVal = 0;
 
-  if (_inputMixerHandle != NULL) {
-    RTC_LOG(LS_VERBOSE) << "Closing record mixer";
+  if (inputMixerHandle_ != nullptr) {
 
-    LATE(snd_mixer_free)(_inputMixerHandle);
+    LATE(snd_mixer_free)(inputMixerHandle_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error freeing record mixer: "
-                        << LATE(snd_strerror)(errVal);
-    }
-    RTC_LOG(LS_VERBOSE) << "Closing record mixer 2";
-
-    errVal = LATE(snd_mixer_detach)(_inputMixerHandle, _inputMixerStr);
-    if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error detaching record mixer: "
-                        << LATE(snd_strerror)(errVal);
-    }
-    RTC_LOG(LS_VERBOSE) << "Closing record mixer 3";
-
-    errVal = LATE(snd_mixer_close)(_inputMixerHandle);
-    if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error snd_mixer_close(handleMixer) errVal="
-                        << errVal;
+      LATE(snd_strerror)(errVal);
     }
 
-    RTC_LOG(LS_VERBOSE) << "Closing record mixer 4";
-    _inputMixerHandle = NULL;
-    _inputMixerElement = NULL;
+    errVal = LATE(snd_mixer_detach)(inputMixerHandle_, inputMixerStr_);
+    if (errVal < 0) {
+       LATE(snd_strerror)(errVal);
+    }
+
+    errVal = LATE(snd_mixer_close)(inputMixerHandle_);
+    if (errVal < 0) {
+    }
+
+    inputMixerHandle_ = nullptr;
+    inputMixerElement_ = nullptr;
   }
-  memset(_inputMixerStr, 0, kAdmMaxDeviceNameSize);
+  memset(inputMixerStr_, 0, 128);
 
   return 0;
 }
 
 int32_t AudioMixerManagerLinuxALSA::OpenSpeaker(char* deviceName) {
-  RTC_LOG(LS_VERBOSE) << "AudioMixerManagerLinuxALSA::OpenSpeaker(name="
-                      << deviceName << ")";
-
-  MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
 
   int errVal = 0;
-
-  // Close any existing output mixer handle
-  //
-  if (_outputMixerHandle != NULL) {
-    RTC_LOG(LS_VERBOSE) << "Closing playout mixer";
-
-    LATE(snd_mixer_free)(_outputMixerHandle);
+  if (outputMixerHandle_ != nullptr) {
+    LATE(snd_mixer_free)(outputMixerHandle_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error freeing playout mixer: "
-                        << LATE(snd_strerror)(errVal);
+      LATE(snd_strerror)(errVal);
     }
-    errVal = LATE(snd_mixer_detach)(_outputMixerHandle, _outputMixerStr);
+    errVal = LATE(snd_mixer_detach)(outputMixerHandle_, outputMixerStr_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error detaching playout mixer: "
-                        << LATE(snd_strerror)(errVal);
+      LATE(snd_strerror)(errVal);
     }
-    errVal = LATE(snd_mixer_close)(_outputMixerHandle);
+    errVal = LATE(snd_mixer_close)(outputMixerHandle_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error snd_mixer_close(handleMixer) errVal="
-                        << errVal;
     }
   }
-  _outputMixerHandle = NULL;
-  _outputMixerElement = NULL;
+  outputMixerHandle_ = nullptr;
+  outputMixerElement_ = nullptr;
 
-  errVal = LATE(snd_mixer_open)(&_outputMixerHandle, 0);
+  errVal = LATE(snd_mixer_open)(&outputMixerHandle_, 0);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "snd_mixer_open(&_outputMixerHandle, 0) - error";
     return -1;
   }
 
-  char controlName[kAdmMaxDeviceNameSize] = {0};
+  char controlName[AdmMaxDeviceNameSize] = {0};
   GetControlName(controlName, deviceName);
 
-  RTC_LOG(LS_VERBOSE) << "snd_mixer_attach(_outputMixerHandle, " << controlName
-                      << ")";
-
-  errVal = LATE(snd_mixer_attach)(_outputMixerHandle, controlName);
+  errVal = LATE(snd_mixer_attach)(outputMixerHandle_, controlName);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "snd_mixer_attach(_outputMixerHandle, " << controlName
-                      << ") error: " << LATE(snd_strerror)(errVal);
-    _outputMixerHandle = NULL;
+    LATE(snd_strerror)(errVal);
+    outputMixerHandle_ = nullptr;
     return -1;
   }
-  strcpy(_outputMixerStr, controlName);
+  strcpy(outputMixerStr_, controlName);
 
-  errVal = LATE(snd_mixer_selem_register)(_outputMixerHandle, NULL, NULL);
+  errVal = LATE(snd_mixer_selem_register)(outputMixerHandle_, nullptr, nullptr);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR)
-        << "snd_mixer_selem_register(_outputMixerHandle, NULL, NULL), "
-           "error: "
-        << LATE(snd_strerror)(errVal);
-    _outputMixerHandle = NULL;
+    LATE(snd_strerror)(errVal);
+    outputMixerHandle_ = nullptr;
     return -1;
   }
 
@@ -198,124 +165,89 @@ int32_t AudioMixerManagerLinuxALSA::OpenSpeaker(char* deviceName) {
     return -1;
   }
 
-  if (_outputMixerHandle != NULL) {
-    RTC_LOG(LS_VERBOSE) << "the output mixer device is now open ("
-                        << _outputMixerHandle << ")";
+  if (outputMixerHandle_ != nullptr) {
   }
 
   return 0;
 }
 
 int32_t AudioMixerManagerLinuxALSA::OpenMicrophone(char* deviceName) {
-  RTC_LOG(LS_VERBOSE) << "AudioMixerManagerLinuxALSA::OpenMicrophone(name="
-                      << deviceName << ")";
 
-  MutexLock lock(&mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
 
   int errVal = 0;
 
-  // Close any existing input mixer handle
-  //
-  if (_inputMixerHandle != NULL) {
-    RTC_LOG(LS_VERBOSE) << "Closing record mixer";
-
-    LATE(snd_mixer_free)(_inputMixerHandle);
+  if (inputMixerHandle_ != nullptr) {
+    LATE(snd_mixer_free)(inputMixerHandle_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error freeing record mixer: "
-                        << LATE(snd_strerror)(errVal);
+      LATE(snd_strerror)(errVal);
     }
-    RTC_LOG(LS_VERBOSE) << "Closing record mixer";
 
-    errVal = LATE(snd_mixer_detach)(_inputMixerHandle, _inputMixerStr);
+    errVal = LATE(snd_mixer_detach)(inputMixerHandle_, inputMixerStr_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error detaching record mixer: "
-                        << LATE(snd_strerror)(errVal);
+      LATE(snd_strerror)(errVal);
     }
-    RTC_LOG(LS_VERBOSE) << "Closing record mixer";
 
-    errVal = LATE(snd_mixer_close)(_inputMixerHandle);
+    errVal = LATE(snd_mixer_close)(inputMixerHandle_);
     if (errVal < 0) {
-      RTC_LOG(LS_ERROR) << "Error snd_mixer_close(handleMixer) errVal="
-                        << errVal;
+
     }
-    RTC_LOG(LS_VERBOSE) << "Closing record mixer";
   }
-  _inputMixerHandle = NULL;
-  _inputMixerElement = NULL;
+  inputMixerHandle_ = nullptr;
+  inputMixerElement_ = nullptr;
 
-  errVal = LATE(snd_mixer_open)(&_inputMixerHandle, 0);
+  errVal = LATE(snd_mixer_open)(&inputMixerHandle_, 0);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "snd_mixer_open(&_inputMixerHandle, 0) - error";
     return -1;
   }
 
-  char controlName[kAdmMaxDeviceNameSize] = {0};
+  char controlName[AdmMaxDeviceNameSize] = {0};
   GetControlName(controlName, deviceName);
 
-  RTC_LOG(LS_VERBOSE) << "snd_mixer_attach(_inputMixerHandle, " << controlName
-                      << ")";
 
-  errVal = LATE(snd_mixer_attach)(_inputMixerHandle, controlName);
+  errVal = LATE(snd_mixer_attach)(inputMixerHandle_, controlName);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "snd_mixer_attach(_inputMixerHandle, " << controlName
-                      << ") error: " << LATE(snd_strerror)(errVal);
-
-    _inputMixerHandle = NULL;
+    LATE(snd_strerror)(errVal);
+    inputMixerHandle_ = nullptr;
     return -1;
   }
-  strcpy(_inputMixerStr, controlName);
+  strcpy(inputMixerStr_, controlName);
 
-  errVal = LATE(snd_mixer_selem_register)(_inputMixerHandle, NULL, NULL);
+  errVal = LATE(snd_mixer_selem_register)(inputMixerHandle_, nullptr, nullptr);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR)
-        << "snd_mixer_selem_register(_inputMixerHandle, NULL, NULL), "
-           "error: "
-        << LATE(snd_strerror)(errVal);
-
-    _inputMixerHandle = NULL;
+    LATE(snd_strerror)(errVal);
+    inputMixerHandle_ = nullptr;
     return -1;
   }
-  // Load and find the proper mixer element
   if (LoadMicMixerElement() < 0) {
     return -1;
   }
 
-  if (_inputMixerHandle != NULL) {
-    RTC_LOG(LS_VERBOSE) << "the input mixer device is now open ("
-                        << _inputMixerHandle << ")";
+  if (inputMixerHandle_ != nullptr) {
   }
 
   return 0;
 }
 
 bool AudioMixerManagerLinuxALSA::SpeakerIsInitialized() const {
-  RTC_DLOG(LS_INFO) << __FUNCTION__;
-
-  return (_outputMixerHandle != NULL);
+  return (outputMixerHandle_ != nullptr);
 }
 
 bool AudioMixerManagerLinuxALSA::MicrophoneIsInitialized() const {
-  RTC_DLOG(LS_INFO) << __FUNCTION__;
-
-  return (_inputMixerHandle != NULL);
+  return (inputMixerHandle_ != nullptr);
 }
 
 int32_t AudioMixerManagerLinuxALSA::SetSpeakerVolume(uint32_t volume) {
-  RTC_LOG(LS_VERBOSE) << "AudioMixerManagerLinuxALSA::SetSpeakerVolume(volume="
-                      << volume << ")";
+  std::lock_guard<std::mutex> lock(mutex_);
 
-  MutexLock lock(&mutex_);
-
-  if (_outputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable output mixer element exists";
+  if (outputMixerElement_ == nullptr) {
     return -1;
   }
 
   int errVal = LATE(snd_mixer_selem_set_playback_volume_all)(
-      _outputMixerElement, volume);
+      outputMixerElement_, volume);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "Error changing master volume: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
     return -1;
   }
 
@@ -323,22 +255,18 @@ int32_t AudioMixerManagerLinuxALSA::SetSpeakerVolume(uint32_t volume) {
 }
 
 int32_t AudioMixerManagerLinuxALSA::SpeakerVolume(uint32_t& volume) const {
-  if (_outputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable output mixer element exists";
+  if (outputMixerElement_ == nullptr) {
     return -1;
   }
 
   long int vol(0);
 
   int errVal = LATE(snd_mixer_selem_get_playback_volume)(
-      _outputMixerElement, (snd_mixer_selem_channel_id_t)0, &vol);
+      outputMixerElement_, (snd_mixer_selem_channel_id_t)0, &vol);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "Error getting outputvolume: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
     return -1;
   }
-  RTC_LOG(LS_VERBOSE) << "AudioMixerManagerLinuxALSA::SpeakerVolume() => vol="
-                      << vol;
 
   volume = static_cast<uint32_t>(vol);
 
@@ -347,8 +275,7 @@ int32_t AudioMixerManagerLinuxALSA::SpeakerVolume(uint32_t& volume) const {
 
 int32_t AudioMixerManagerLinuxALSA::MaxSpeakerVolume(
     uint32_t& maxVolume) const {
-  if (_outputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avilable output mixer element exists";
+  if (outputMixerElement_ == nullptr) {
     return -1;
   }
 
@@ -356,14 +283,10 @@ int32_t AudioMixerManagerLinuxALSA::MaxSpeakerVolume(
   long int maxVol(0);
 
   int errVal = LATE(snd_mixer_selem_get_playback_volume_range)(
-      _outputMixerElement, &minVol, &maxVol);
-
-  RTC_LOG(LS_VERBOSE) << "Playout hardware volume range, min: " << minVol
-                      << ", max: " << maxVol;
+      outputMixerElement_, &minVol, &maxVol);
 
   if (maxVol <= minVol) {
-    RTC_LOG(LS_ERROR) << "Error getting get_playback_volume_range: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
   }
 
   maxVolume = static_cast<uint32_t>(maxVol);
@@ -373,8 +296,7 @@ int32_t AudioMixerManagerLinuxALSA::MaxSpeakerVolume(
 
 int32_t AudioMixerManagerLinuxALSA::MinSpeakerVolume(
     uint32_t& minVolume) const {
-  if (_outputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable output mixer element exists";
+  if (outputMixerElement_ == nullptr) {
     return -1;
   }
 
@@ -382,14 +304,10 @@ int32_t AudioMixerManagerLinuxALSA::MinSpeakerVolume(
   long int maxVol(0);
 
   int errVal = LATE(snd_mixer_selem_get_playback_volume_range)(
-      _outputMixerElement, &minVol, &maxVol);
-
-  RTC_LOG(LS_VERBOSE) << "Playout hardware volume range, min: " << minVol
-                      << ", max: " << maxVol;
+      outputMixerElement_, &minVol, &maxVol);
 
   if (maxVol <= minVol) {
-    RTC_LOG(LS_ERROR) << "Error getting get_playback_volume_range: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
   }
 
   minVolume = static_cast<uint32_t>(minVol);
@@ -482,35 +400,29 @@ int32_t AudioMixerManagerLinuxALSA::MinSpeakerVolume(
  */
 
 int32_t AudioMixerManagerLinuxALSA::SpeakerVolumeIsAvailable(bool& available) {
-  if (_outputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable output mixer element exists";
+  if (outputMixerElement_ == nullptr) {
     return -1;
   }
 
-  available = LATE(snd_mixer_selem_has_playback_volume)(_outputMixerElement);
+  available = LATE(snd_mixer_selem_has_playback_volume)(outputMixerElement_);
 
   return 0;
 }
 
 int32_t AudioMixerManagerLinuxALSA::SpeakerMuteIsAvailable(bool& available) {
-  if (_outputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable output mixer element exists";
+  if (outputMixerElement_ == nullptr) {
     return -1;
   }
 
-  available = LATE(snd_mixer_selem_has_playback_switch)(_outputMixerElement);
+  available = LATE(snd_mixer_selem_has_playback_switch)(outputMixerElement_);
 
   return 0;
 }
 
 int32_t AudioMixerManagerLinuxALSA::SetSpeakerMute(bool enable) {
-  RTC_LOG(LS_VERBOSE) << "AudioMixerManagerLinuxALSA::SetSpeakerMute(enable="
-                      << enable << ")";
+  std::lock_guard<std::mutex> lock(mutex_);
 
-  MutexLock lock(&mutex_);
-
-  if (_outputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable output mixer element exists";
+  if (outputMixerElement_ == nullptr) {
     return -1;
   }
 
@@ -518,16 +430,14 @@ int32_t AudioMixerManagerLinuxALSA::SetSpeakerMute(bool enable) {
   bool available(false);
   SpeakerMuteIsAvailable(available);
   if (!available) {
-    RTC_LOG(LS_WARNING) << "it is not possible to mute the speaker";
     return -1;
   }
 
   // Note value = 0 (off) means muted
   int errVal = LATE(snd_mixer_selem_set_playback_switch_all)(
-      _outputMixerElement, !enable);
+      outputMixerElement_, !enable);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "Error setting playback switch: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
     return -1;
   }
 
@@ -535,16 +445,14 @@ int32_t AudioMixerManagerLinuxALSA::SetSpeakerMute(bool enable) {
 }
 
 int32_t AudioMixerManagerLinuxALSA::SpeakerMute(bool& enabled) const {
-  if (_outputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable output mixer exists";
+  if (outputMixerElement_ == nullptr) {
     return -1;
   }
 
   // Ensure that the selected speaker destination has a valid mute control.
   bool available =
-      LATE(snd_mixer_selem_has_playback_switch)(_outputMixerElement);
+      LATE(snd_mixer_selem_has_playback_switch)(outputMixerElement_);
   if (!available) {
-    RTC_LOG(LS_WARNING) << "it is not possible to mute the speaker";
     return -1;
   }
 
@@ -553,10 +461,9 @@ int32_t AudioMixerManagerLinuxALSA::SpeakerMute(bool& enabled) const {
   // Retrieve one boolean control value for a specified mute-control
   //
   int errVal = LATE(snd_mixer_selem_get_playback_switch)(
-      _outputMixerElement, (snd_mixer_selem_channel_id_t)0, &value);
+      outputMixerElement_, (snd_mixer_selem_channel_id_t)0, &value);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "Error getting playback switch: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
     return -1;
   }
 
@@ -567,23 +474,18 @@ int32_t AudioMixerManagerLinuxALSA::SpeakerMute(bool& enabled) const {
 }
 
 int32_t AudioMixerManagerLinuxALSA::MicrophoneMuteIsAvailable(bool& available) {
-  if (_inputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable input mixer element exists";
+  if (inputMixerElement_ == nullptr) {
     return -1;
   }
 
-  available = LATE(snd_mixer_selem_has_capture_switch)(_inputMixerElement);
+  available = LATE(snd_mixer_selem_has_capture_switch)(inputMixerElement_);
   return 0;
 }
 
 int32_t AudioMixerManagerLinuxALSA::SetMicrophoneMute(bool enable) {
-  RTC_LOG(LS_VERBOSE) << "AudioMixerManagerLinuxALSA::SetMicrophoneMute(enable="
-                      << enable << ")";
+  std::lock_guard<std::mutex> lock(mutex_);
 
-  MutexLock lock(&mutex_);
-
-  if (_inputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable input mixer element exists";
+  if (inputMixerElement_ == nullptr) {
     return -1;
   }
 
@@ -591,16 +493,14 @@ int32_t AudioMixerManagerLinuxALSA::SetMicrophoneMute(bool enable) {
   bool available(false);
   MicrophoneMuteIsAvailable(available);
   if (!available) {
-    RTC_LOG(LS_WARNING) << "it is not possible to mute the microphone";
     return -1;
   }
 
   // Note value = 0 (off) means muted
   int errVal =
-      LATE(snd_mixer_selem_set_capture_switch_all)(_inputMixerElement, !enable);
+      LATE(snd_mixer_selem_set_capture_switch_all)(inputMixerElement_, !enable);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "Error setting capture switch: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
     return -1;
   }
 
@@ -608,15 +508,13 @@ int32_t AudioMixerManagerLinuxALSA::SetMicrophoneMute(bool enable) {
 }
 
 int32_t AudioMixerManagerLinuxALSA::MicrophoneMute(bool& enabled) const {
-  if (_inputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable input mixer exists";
+  if (inputMixerElement_ == nullptr) {
     return -1;
   }
 
   // Ensure that the selected microphone destination has a valid mute control.
-  bool available = LATE(snd_mixer_selem_has_capture_switch)(_inputMixerElement);
+  bool available = LATE(snd_mixer_selem_has_capture_switch)(inputMixerElement_);
   if (!available) {
-    RTC_LOG(LS_WARNING) << "it is not possible to mute the microphone";
     return -1;
   }
 
@@ -625,10 +523,9 @@ int32_t AudioMixerManagerLinuxALSA::MicrophoneMute(bool& enabled) const {
   // Retrieve one boolean control value for a specified mute-control
   //
   int errVal = LATE(snd_mixer_selem_get_capture_switch)(
-      _inputMixerElement, (snd_mixer_selem_channel_id_t)0, &value);
+      inputMixerElement_, (snd_mixer_selem_channel_id_t)0, &value);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "Error getting capture switch: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
     return -1;
   }
 
@@ -640,33 +537,26 @@ int32_t AudioMixerManagerLinuxALSA::MicrophoneMute(bool& enabled) const {
 
 int32_t AudioMixerManagerLinuxALSA::MicrophoneVolumeIsAvailable(
     bool& available) {
-  if (_inputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable input mixer element exists";
+  if (inputMixerElement_ == nullptr) {
     return -1;
   }
 
-  available = LATE(snd_mixer_selem_has_capture_volume)(_inputMixerElement);
+  available = LATE(snd_mixer_selem_has_capture_volume)(inputMixerElement_);
 
   return 0;
 }
 
 int32_t AudioMixerManagerLinuxALSA::SetMicrophoneVolume(uint32_t volume) {
-  RTC_LOG(LS_VERBOSE)
-      << "AudioMixerManagerLinuxALSA::SetMicrophoneVolume(volume=" << volume
-      << ")";
+  std::lock_guard<std::mutex> lock(mutex_);
 
-  MutexLock lock(&mutex_);
-
-  if (_inputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable input mixer element exists";
+  if (inputMixerElement_ == nullptr) {
     return -1;
   }
 
   int errVal =
-      LATE(snd_mixer_selem_set_capture_volume_all)(_inputMixerElement, volume);
+      LATE(snd_mixer_selem_set_capture_volume_all)(inputMixerElement_, volume);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "Error changing microphone volume: "
-                      << LATE(snd_strerror)(errVal);
+   LATE(snd_strerror)(errVal);
     return -1;
   }
 
@@ -761,22 +651,18 @@ int32_t AudioMixerManagerLinuxALSA::SetMicrophoneVolume(uint32_t volume) {
  */
 
 int32_t AudioMixerManagerLinuxALSA::MicrophoneVolume(uint32_t& volume) const {
-  if (_inputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable input mixer element exists";
+  if (inputMixerElement_ == nullptr) {
     return -1;
   }
 
   long int vol(0);
 
   int errVal = LATE(snd_mixer_selem_get_capture_volume)(
-      _inputMixerElement, (snd_mixer_selem_channel_id_t)0, &vol);
+      inputMixerElement_, (snd_mixer_selem_channel_id_t)0, &vol);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "Error getting inputvolume: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
     return -1;
   }
-  RTC_LOG(LS_VERBOSE)
-      << "AudioMixerManagerLinuxALSA::MicrophoneVolume() => vol=" << vol;
 
   volume = static_cast<uint32_t>(vol);
 
@@ -785,28 +671,23 @@ int32_t AudioMixerManagerLinuxALSA::MicrophoneVolume(uint32_t& volume) const {
 
 int32_t AudioMixerManagerLinuxALSA::MaxMicrophoneVolume(
     uint32_t& maxVolume) const {
-  if (_inputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable input mixer element exists";
-    return -1;
+  if (inputMixerElement_ == nullptr) {
+     return -1;
   }
 
   long int minVol(0);
   long int maxVol(0);
 
   // check if we have mic volume at all
-  if (!LATE(snd_mixer_selem_has_capture_volume)(_inputMixerElement)) {
-    RTC_LOG(LS_ERROR) << "No microphone volume available";
+  if (!LATE(snd_mixer_selem_has_capture_volume)(inputMixerElement_)) {
     return -1;
   }
 
   int errVal = LATE(snd_mixer_selem_get_capture_volume_range)(
-      _inputMixerElement, &minVol, &maxVol);
+      inputMixerElement_, &minVol, &maxVol);
 
-  RTC_LOG(LS_VERBOSE) << "Microphone hardware volume range, min: " << minVol
-                      << ", max: " << maxVol;
   if (maxVol <= minVol) {
-    RTC_LOG(LS_ERROR) << "Error getting microphone volume range: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
   }
 
   maxVolume = static_cast<uint32_t>(maxVol);
@@ -816,8 +697,7 @@ int32_t AudioMixerManagerLinuxALSA::MaxMicrophoneVolume(
 
 int32_t AudioMixerManagerLinuxALSA::MinMicrophoneVolume(
     uint32_t& minVolume) const {
-  if (_inputMixerElement == NULL) {
-    RTC_LOG(LS_WARNING) << "no avaliable input mixer element exists";
+  if (inputMixerElement_ == nullptr) {
     return -1;
   }
 
@@ -825,13 +705,10 @@ int32_t AudioMixerManagerLinuxALSA::MinMicrophoneVolume(
   long int maxVol(0);
 
   int errVal = LATE(snd_mixer_selem_get_capture_volume_range)(
-      _inputMixerElement, &minVol, &maxVol);
+      inputMixerElement_, &minVol, &maxVol);
 
-  RTC_LOG(LS_VERBOSE) << "Microphone hardware volume range, min: " << minVol
-                      << ", max: " << maxVol;
   if (maxVol <= minVol) {
-    RTC_LOG(LS_ERROR) << "Error getting microphone volume range: "
-                      << LATE(snd_strerror)(errVal);
+    LATE(snd_strerror)(errVal);
   }
 
   minVolume = static_cast<uint32_t>(minVol);
@@ -844,50 +721,44 @@ int32_t AudioMixerManagerLinuxALSA::MinMicrophoneVolume(
 // ============================================================================
 
 int32_t AudioMixerManagerLinuxALSA::LoadMicMixerElement() const {
-  int errVal = LATE(snd_mixer_load)(_inputMixerHandle);
+  int errVal = LATE(snd_mixer_load)(inputMixerHandle_);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "snd_mixer_load(_inputMixerHandle), error: "
-                      << LATE(snd_strerror)(errVal);
-    _inputMixerHandle = NULL;
+    LATE(snd_strerror)(errVal);
+    inputMixerHandle_ = nullptr;
     return -1;
   }
 
-  snd_mixer_elem_t* elem = NULL;
-  snd_mixer_elem_t* micElem = NULL;
+  snd_mixer_elem_t* elem = nullptr;
+  snd_mixer_elem_t* micElem = nullptr;
   unsigned mixerIdx = 0;
-  const char* selemName = NULL;
+  const char* selemName = nullptr;
 
   // Find and store handles to the right mixer elements
-  for (elem = LATE(snd_mixer_first_elem)(_inputMixerHandle); elem;
+  for (elem = LATE(snd_mixer_first_elem)(inputMixerHandle_); elem;
        elem = LATE(snd_mixer_elem_next)(elem), mixerIdx++) {
     if (LATE(snd_mixer_selem_is_active)(elem)) {
       selemName = LATE(snd_mixer_selem_get_name)(elem);
       if (strcmp(selemName, "Capture") == 0)  // "Capture", "Mic"
       {
-        _inputMixerElement = elem;
-        RTC_LOG(LS_VERBOSE) << "Capture element set";
+        inputMixerElement_ = elem;
       } else if (strcmp(selemName, "Mic") == 0) {
         micElem = elem;
-        RTC_LOG(LS_VERBOSE) << "Mic element found";
       }
     }
 
-    if (_inputMixerElement) {
+    if (inputMixerElement_) {
       // Use the first Capture element that is found
       // The second one may not work
       break;
     }
   }
 
-  if (_inputMixerElement == NULL) {
+  if (inputMixerElement_ == nullptr) {
     // We didn't find a Capture handle, use Mic.
-    if (micElem != NULL) {
-      _inputMixerElement = micElem;
-      RTC_LOG(LS_VERBOSE) << "Using Mic as capture volume.";
+    if (micElem != nullptr) {
+      inputMixerElement_ = micElem;
     } else {
-      _inputMixerElement = NULL;
-      RTC_LOG(LS_ERROR) << "Could not find capture volume on the mixer.";
-
+      inputMixerElement_ = nullptr;
       return -1;
     }
   }
@@ -896,58 +767,48 @@ int32_t AudioMixerManagerLinuxALSA::LoadMicMixerElement() const {
 }
 
 int32_t AudioMixerManagerLinuxALSA::LoadSpeakerMixerElement() const {
-  int errVal = LATE(snd_mixer_load)(_outputMixerHandle);
+  int errVal = LATE(snd_mixer_load)(outputMixerHandle_);
   if (errVal < 0) {
-    RTC_LOG(LS_ERROR) << "snd_mixer_load(_outputMixerHandle), error: "
-                      << LATE(snd_strerror)(errVal);
-    _outputMixerHandle = NULL;
+    LATE(snd_strerror)(errVal);
+    outputMixerHandle_ = nullptr;
     return -1;
   }
 
-  snd_mixer_elem_t* elem = NULL;
-  snd_mixer_elem_t* masterElem = NULL;
-  snd_mixer_elem_t* speakerElem = NULL;
+  snd_mixer_elem_t* elem = nullptr;
+  snd_mixer_elem_t* masterElem = nullptr;
+  snd_mixer_elem_t* speakerElem = nullptr;
   unsigned mixerIdx = 0;
-  const char* selemName = NULL;
+  const char* selemName = nullptr;
 
   // Find and store handles to the right mixer elements
-  for (elem = LATE(snd_mixer_first_elem)(_outputMixerHandle); elem;
+  for (elem = LATE(snd_mixer_first_elem)(outputMixerHandle_); elem;
        elem = LATE(snd_mixer_elem_next)(elem), mixerIdx++) {
     if (LATE(snd_mixer_selem_is_active)(elem)) {
       selemName = LATE(snd_mixer_selem_get_name)(elem);
-      RTC_LOG(LS_VERBOSE) << "snd_mixer_selem_get_name " << mixerIdx << ": "
-                          << selemName << " =" << elem;
-
       // "Master", "PCM", "Wave", "Master Mono", "PC Speaker", "PCM", "Wave"
       if (strcmp(selemName, "PCM") == 0) {
-        _outputMixerElement = elem;
-        RTC_LOG(LS_VERBOSE) << "PCM element set";
+        outputMixerElement_ = elem;
       } else if (strcmp(selemName, "Master") == 0) {
         masterElem = elem;
-        RTC_LOG(LS_VERBOSE) << "Master element found";
       } else if (strcmp(selemName, "Speaker") == 0) {
         speakerElem = elem;
-        RTC_LOG(LS_VERBOSE) << "Speaker element found";
       }
     }
 
-    if (_outputMixerElement) {
+    if (outputMixerElement_) {
       // We have found the element we want
       break;
     }
   }
 
   // If we didn't find a PCM Handle, use Master or Speaker
-  if (_outputMixerElement == NULL) {
-    if (masterElem != NULL) {
-      _outputMixerElement = masterElem;
-      RTC_LOG(LS_VERBOSE) << "Using Master as output volume.";
-    } else if (speakerElem != NULL) {
-      _outputMixerElement = speakerElem;
-      RTC_LOG(LS_VERBOSE) << "Using Speaker as output volume.";
+  if (outputMixerElement_ == nullptr) {
+    if (masterElem != nullptr) {
+      outputMixerElement_ = masterElem;
+    } else if (speakerElem != nullptr) {
+      outputMixerElement_ = speakerElem;
     } else {
-      _outputMixerElement = NULL;
-      RTC_LOG(LS_ERROR) << "Could not find output volume in the mixer.";
+      outputMixerElement_ = nullptr;
       return -1;
     }
   }
@@ -975,5 +836,3 @@ void AudioMixerManagerLinuxALSA::GetControlName(char* controlName,
     strcpy(controlName, deviceName);
   }
 }
-
-}  // namespace webrtc

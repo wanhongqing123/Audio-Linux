@@ -13,9 +13,6 @@
 
 #include <pulse/pulseaudio.h>
 #include <stdint.h>
-
-#include "api/sequence_checker.h"
-
 #ifndef UINT32_MAX
 #define UINT32_MAX ((uint32_t)-1)
 #endif
@@ -102,11 +99,6 @@ class AudioMixerManagerLinuxPulse {
   mutable uint8_t _paChannels;
   bool _paObjectsSet;
 
-  // Stores thread ID in constructor.
-  // We can then use RTC_DCHECK_RUN_ON(&worker_thread_checker_) to ensure that
-  // other methods are called from the same thread.
-  // Currently only does RTC_DCHECK(thread_checker_.IsCurrent()).
-  SequenceChecker thread_checker_;
 };
 
 }  // namespace webrtc
