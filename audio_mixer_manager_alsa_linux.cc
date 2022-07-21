@@ -9,7 +9,7 @@
  */
 
 #include "audio_mixer_manager_alsa_linux.h"
-
+#include "audio_device_alsa_linux.h"
 // Accesses ALSA functions through our late-binding symbol table instead of
 // directly. This way we don't have to link to libasound, which means our binary
 // will work on systems that don't have it.

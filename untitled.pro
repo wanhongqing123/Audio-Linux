@@ -30,6 +30,7 @@ SOURCES += \
         pulseaudiosymboltable_linux.cc \
         alsasymboltable_linux.cc \
         audio_mixer_manager_alsa_linux.cc \
+        audio_device_alsa_linux.cc \
 
 HEADERS += \
         mainwindow.h \
@@ -37,6 +38,7 @@ HEADERS += \
         pulseaudiosymboltable_linux.h \
         alsasymboltable_linux.h \
         audio_mixer_manager_alsa_linux.h \
+        audio_device_alsa_linux.h \
 
 FORMS += \
         mainwindow.ui

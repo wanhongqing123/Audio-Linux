@@ -5,6 +5,10 @@ LiteavAlsaSymbolTables* GetAlsaSymbolTable() {
     return p;
 }
 
+#define LATE(sym)                                                            \
+  LATESYM_GET(AlsaSymbolTable, GetAlsaSymbolTable(), \
+              sym)
+
 static const unsigned int ALSA_PLAYOUT_FREQ = 48000;
 static const unsigned int ALSA_PLAYOUT_CH = 2;
 static const unsigned int ALSA_PLAYOUT_LATENCY = 40 * 1000;  // in us
@@ -19,6 +23,14 @@ static const unsigned int ALSA_CAPTURE_WAIT_TIMEOUT = 5;     // in ms
 
 AudioDeviceAlsaLinux::AudioDeviceAlsaLinux() = default;
 AudioDeviceAlsaLinux::~AudioDeviceAlsaLinux() = default;
+
+bool AudioDeviceAlsaLinux::Init() {
+  if(GetAlsaSymbolTable()->Load() == false) {
+    return false;
+  }
+  return true;
+}
+
 int32_t AudioDeviceAlsaLinux::GetDevicesInfo(const int32_t function,
                                              const bool playback,
                                              const int32_t enumDeviceNo,
@@ -66,7 +78,7 @@ int32_t AudioDeviceAlsaLinux::GetDevicesInfo(const int32_t function,
       return 0;
     }
 
-    for (void** list = hints; *list != NULL; ++list) {
+    for (void** list = hints; *list != nullptr; ++list) {
       char* actualType = LATE(snd_device_name_get_hint)(*list, "IOID");
       if (actualType) {  // NULL means it's both.
         bool wrongType = (strcmp(actualType, type) != 0);

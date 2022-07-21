@@ -17,4 +17,5 @@ class AudioDeviceAlsaLinux {
                                              const int32_t enumDeviceNo,
                                              char* enumDeviceName,
                                              const int32_t ednLen);
+  bool Init();
 };
